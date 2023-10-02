@@ -36,6 +36,13 @@ export * from './common';
 export type EventConnecting = 'connecting';
 
 /**
+ * WebSocket connecting as part of a retry.
+ *
+ * @category Client
+ */
+export type EventReconnecting = 'reconnecting';
+
+/**
  * WebSocket has opened.
  *
  * @category Client
@@ -91,6 +98,7 @@ export type EventError = 'error';
  */
 export type Event =
   | EventConnecting
+  | EventReconnecting
   | EventOpened
   | EventConnected
   | EventPing
@@ -101,6 +109,9 @@ export type Event =
 
 /** @category Client */
 export type EventConnectingListener = () => void;
+
+/** @category Client */
+export type EventReconnectingListener = () => void;
 
 /**
  * The first argument is actually the `WebSocket`, but to avoid
@@ -176,6 +187,8 @@ export type EventErrorListener = (error: unknown) => void;
 /** @category Client */
 export type EventListener<E extends Event> = E extends EventConnecting
   ? EventConnectingListener
+  : E extends EventReconnecting
+  ? EventReconnectingListener
   : E extends EventOpened
   ? EventOpenedListener
   : E extends EventConnected
@@ -559,6 +572,7 @@ export function createClient<
     })();
     const listeners: { [event in Event]: EventListener<event>[] } = {
       connecting: on?.connecting ? [on.connecting] : [],
+      reconnecting: on?.reconnecting ? [on.reconnecting] : [],
       opened: on?.opened ? [on.opened] : [],
       connected: on?.connected ? [on.connected] : [],
       ping: on?.ping ? [on.ping] : [],
@@ -635,6 +649,7 @@ export function createClient<
             }
 
             retries++;
+            emitter.emit('reconnecting');
           }
 
           emitter.emit('connecting');
